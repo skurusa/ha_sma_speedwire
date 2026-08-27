@@ -1,6 +1,6 @@
 # SMA SpeedWire Integration for Home Assistant  
 
-# I forked the original ha_sma_speedwire package, and added a refress interval from 10 to 300 sec, default 30 sec. Choseable from graphical interface.
+# I forked the original ha_sma_speedwire package, and added a refress interval from 10 to 300 sec, default 30 sec. Choseable from graphical interface. (The pictures came from the original eddso installation instruction!)
 
 Custom integration for Home Assistant to connect SMA inverters via SpeedWire protocol. The original integration polls every 5 minutes only 3 entities because i only needed it for my Energy Dashboard:
 - Energy production total in kWh
@@ -12,7 +12,7 @@ The integration should support a range of SMA Inverters here a [list](https://gi
 
 ## Installation
 ### a) Install over HACS
-- Add `https://github.com/eddso/ha_sma_speedwire` repository to HACS integrations
+- Add `https://github.com/skurusa/ha_sma_speedwire` repository to HACS integrations
 ![add custom repo to HACS](img/add_hacs_repo.png)
 ![add repo to HACS](img/add_hacs_repo2.png)
 - Add `SMA SpeedWire Integration` integration with HACS
