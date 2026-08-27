@@ -1,0 +1,29 @@
+{
+  "config": {
+    "error": {
+      "cannot_connect": "Nem sikerült kapcsolódni"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "IP-cím",
+          "password": "Jelszó"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Lekérdezési időköz",
+        "description": "Itt állítható be, milyen gyakran kérdezze le a rendszer az SMA invertert.",
+        "data": {
+          "scan_interval": "Lekérdezési időköz (másodperc)"
+        },
+        "data_description": {
+          "scan_interval": "Megengedett tartomány: 10–300 másodperc. Az ajánlott alapérték 30 másodperc."
+        }
+      }
+    }
+  }
+}
