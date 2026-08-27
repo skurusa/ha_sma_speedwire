@@ -1,8 +1,8 @@
 # SMA SpeedWire Integration for Home Assistant  
 
-# I don't work on this integration since my inverter died, can't test changes, sorry.
+# I forked the original ha_sma_speedwire package, and added a refress interval from 10 to 300 sec, default 30 sec.
 
-Custom integration for Home Assistant to connect SMA inverters via SpeedWire protocol. The integration polls every 5 minutes only 3 entities because i only needed it for my Energy Dashboard:
+Custom integration for Home Assistant to connect SMA inverters via SpeedWire protocol. The original integration polls every 5 minutes only 3 entities because i only needed it for my Energy Dashboard:
 - Energy production total in kWh
 - Energy production today in kWh
 - Power production now in kW
