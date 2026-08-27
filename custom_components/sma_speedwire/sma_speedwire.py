@@ -66,6 +66,7 @@ SMA_STATUS_TAGS = {
     1469: "Shutdown",
     1749: "Full stop",
     1779: "Disconnected",
+    16777213: "Information not available",
 }
 
 REGISTER_SENSORS = {
@@ -486,30 +487,31 @@ class SMA_SPEEDWIRE:
         return None
 
     def _decode_register_response(self, data):
-        """Decode a Speedwire register response into known diagnostics."""
+        """Decode diagnostics and report recognized and populated registers."""
         if len(data) < 58:
             self.logger.debug("Ignoring short diagnostic response (%d bytes)", len(data))
-            return 0
+            return 0, 0
 
         first_register = unpack_from("I", data, offset=46)[0]
         last_register = unpack_from("I", data, offset=50)[0]
         register_count = last_register - first_register + 1
         payload_size = len(data) - 58
         if register_count <= 0 or payload_size <= 0:
-            return 0
+            return 0, 0
         if payload_size % register_count:
             self.logger.debug(
                 "Cannot split diagnostic response: %d bytes for %d registers",
                 payload_size,
                 register_count,
             )
-            return 0
+            return 0, 0
 
         register_size = payload_size // register_count
         if register_size not in (16, 28, 40):
             self.logger.debug("Unsupported SMA register size: %d", register_size)
-            return 0
+            return 0, 0
 
+        recognized_count = 0
         decoded_count = 0
         for index in range(register_count):
             start = 54 + index * register_size
@@ -520,6 +522,7 @@ class SMA_SPEEDWIRE:
             definition = self._register_definition(register_id)
             if definition is None:
                 continue
+            recognized_count += 1
             sensor_key, value_type, factor = definition
             if value_type == "status":
                 value = self._decode_status(register)
@@ -528,7 +531,7 @@ class SMA_SPEEDWIRE:
             if value is not None:
                 self.sensors[sensor_key]["value"] = value
                 decoded_count += 1
-        return decoded_count
+        return recognized_count, decoded_count
 
     def _record_diagnostic_failure(self, command, now, reason):
         """Back off a repeatedly unsupported optional command."""
@@ -568,11 +571,17 @@ class SMA_SPEEDWIRE:
         except smaError as exception:
             self._record_diagnostic_failure(command, now, exception)
             return False
-        decoded_count = self._decode_register_response(data) if data else 0
-        if decoded_count == 0:
+        recognized_count, decoded_count = (
+            self._decode_register_response(data) if data else (0, 0)
+        )
+        if recognized_count == 0:
             self._record_diagnostic_failure(command, now, "no compatible registers")
             return False
 
+        # A compatible register containing SMA's no-value sentinel is a valid
+        # response, most commonly seen while the inverter sleeps overnight.
+        # Keep the entity unavailable, but do not classify the command as
+        # unsupported or enter the 15-minute retry backoff.
         self._diagnostic_failures[command] = 0
         self._diagnostic_retry_after[command] = 0.0
         return True
