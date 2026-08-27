@@ -21,7 +21,9 @@ Extended entities are available only when the inverter model returns the corresp
 
 Diagnostic commands are staggered across normal production updates, so a refresh does not send the entire diagnostic query set at once. A repeatedly unsupported optional command is temporarily backed off and retried later; this avoids continuously delaying the established production sensors on inverter models that do not provide every register.
 
-`0.2.0-beta.1` is a hardware-validation release. It is intended to verify the extended registers on real inverters before the stable `0.2.0` release.
+`0.2.0-beta.2` fixes nighttime and sleep-state handling. A supported register that contains SMA's no-value sentinel remains unavailable without being misclassified as an unsupported command, so it does not enter the 15-minute retry backoff. SMA status tag `16777213` is displayed as `Information not available`.
+
+`0.2.0-beta.2` remains a hardware-validation release. It is intended to verify the extended registers on real inverters before the stable `0.2.0` release.
 
 ![add integration to HACS](img/integration.png)
 The integration supports a range of SMA inverters. See the [supported inverter list](https://github.com/skurusa/ha_sma_speedwire/blob/main/custom_components/sma_speedwire/sma_speedwire.py#L27).
