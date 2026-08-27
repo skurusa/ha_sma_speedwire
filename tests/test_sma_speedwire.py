@@ -92,6 +92,15 @@ class RegisterDecoderTest(unittest.TestCase):
         )
         self.assertEqual(self.api.sensors["grid_relay_status"]["value"], "Closed")
 
+    def test_information_not_available_status_mapping(self):
+        self.api._decode_register_response(
+            register_response(0x08416401, [0x01FFFFFD], register_size=28)
+        )
+        self.assertEqual(
+            self.api.sensors["grid_relay_status"]["value"],
+            "Information not available",
+        )
+
     def test_invalid_value_is_ignored(self):
         self.api._decode_register_response(
             register_response(0x00465701, [0xFFFFFFFF])
@@ -99,7 +108,7 @@ class RegisterDecoderTest(unittest.TestCase):
         self.assertIsNone(self.api.sensors["grid_frequency"]["value"])
 
     def test_multiple_registers_are_decoded(self):
-        decoded = self.api._decode_register_response(
+        recognized, decoded = self.api._decode_register_response(
             multi_register_response(
                 [
                     (0x40464001, [1234]),
@@ -108,17 +117,26 @@ class RegisterDecoderTest(unittest.TestCase):
                 ]
             )
         )
-        self.assertEqual(decoded, 3)
+        self.assertEqual((recognized, decoded), (3, 3))
         self.assertEqual(self.api.sensors["power_ac_l1"]["value"], 1234)
         self.assertEqual(self.api.sensors["power_ac_l2"]["value"], 2345)
         self.assertEqual(self.api.sensors["power_ac_l3"]["value"], 3456)
 
     def test_low_identifier_nibble_is_tolerated(self):
-        decoded = self.api._decode_register_response(
+        recognized, decoded = self.api._decode_register_response(
             register_response(0x00464802, [23123])
         )
-        self.assertEqual(decoded, 1)
+        self.assertEqual((recognized, decoded), (1, 1))
         self.assertEqual(self.api.sensors["voltage_ac_l1"]["value"], 231.23)
+
+    def test_known_register_with_no_value_does_not_enter_backoff(self):
+        response = register_response(0x00465701, [0xFFFFFFFF])
+        self.api._send_recieve = lambda _command, **_kwargs: response
+
+        self.assertTrue(self.api._fetch_diagnostics("grid_frequency", now=10.0))
+        self.assertIsNone(self.api.sensors["grid_frequency"]["value"])
+        self.assertEqual(self.api._diagnostic_failures["grid_frequency"], 0)
+        self.assertEqual(self.api._diagnostic_retry_after["grid_frequency"], 0.0)
 
     def test_repeated_unsupported_command_enters_backoff(self):
         def unavailable(_command, **_kwargs):
