@@ -15,15 +15,22 @@
   "options": {
     "step": {
       "init": {
-        "title": "Polling interval",
-        "description": "Configure how often the SMA inverter is queried.",
+        "title": "Polling intervals",
+        "description": "Configure how often the SMA inverter is queried. Shorter diagnostic intervals generate more network requests and may unnecessarily load the inverter communication interface.",
         "data": {
-          "scan_interval": "Polling interval (seconds)"
+          "scan_interval": "Production polling interval (seconds)",
+          "fast_diagnostic_interval": "Phase and DC diagnostic interval (seconds)",
+          "medium_diagnostic_interval": "Status and electrical diagnostic interval (seconds)"
         },
         "data_description": {
-          "scan_interval": "Allowed range: 10–300 seconds. The recommended default is 30 seconds."
+          "scan_interval": "Updates the three original production entities. Allowed range: 10–300 seconds; default: 30 seconds.",
+          "fast_diagnostic_interval": "Updates AC phase power and DC string power. Allowed range: 20–600 seconds; default: 30 seconds. It cannot be shorter than the production interval.",
+          "medium_diagnostic_interval": "Updates voltage, current, frequency, temperature and status values. Allowed range: 30–3600 seconds; default: 60 seconds. It cannot be shorter than the phase/DC interval."
         }
       }
+    },
+    "error": {
+      "invalid_diagnostic_intervals": "Diagnostic intervals must be ordered from shortest to longest: production, phase/DC, then status/electrical."
     }
   }
 }

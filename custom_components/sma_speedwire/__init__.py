@@ -7,9 +7,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import (
+    CONF_FAST_DIAGNOSTIC_INTERVAL,
+    CONF_MEDIUM_DIAGNOSTIC_INTERVAL,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_FAST_DIAGNOSTIC_INTERVAL,
+    DEFAULT_MEDIUM_DIAGNOSTIC_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+)
 
 PLATFORMS = [Platform.SENSOR]
 
@@ -23,17 +31,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.data[CONF_PASSWORD],
         _LOGGER,
     )
+    api.set_diagnostic_intervals(
+        entry.options.get(
+            CONF_FAST_DIAGNOSTIC_INTERVAL,
+            DEFAULT_FAST_DIAGNOSTIC_INTERVAL,
+        ),
+        entry.options.get(
+            CONF_MEDIUM_DIAGNOSTIC_INTERVAL,
+            DEFAULT_MEDIUM_DIAGNOSTIC_INTERVAL,
+        ),
+    )
     try:
         await hass.async_add_executor_job(api.init)
     except smaError as exception:
+        await hass.async_add_executor_job(api.close)
         raise ConfigEntryNotReady from exception
 
     async def async_update_data():
         """Fetch data from the API."""
         try:
             await hass.async_add_executor_job(api.update)
-        except smaError:
-            pass
+        except smaError as exception:
+            raise UpdateFailed(str(exception)) from exception
         return api
 
     scan_interval = entry.options.get(
@@ -49,7 +68,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         update_interval=timedelta(seconds=scan_interval),
     )
 
-    await coordinator.async_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception:
+        await hass.async_add_executor_job(api.close)
+        raise
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
@@ -64,6 +87,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
+        await hass.async_add_executor_job(
+            hass.data[DOMAIN][entry.entry_id].data.close
+        )
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok

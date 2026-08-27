@@ -13,10 +13,18 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    CONF_FAST_DIAGNOSTIC_INTERVAL,
+    CONF_MEDIUM_DIAGNOSTIC_INTERVAL,
     CONF_SCAN_INTERVAL,
+    DEFAULT_FAST_DIAGNOSTIC_INTERVAL,
+    DEFAULT_MEDIUM_DIAGNOSTIC_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_FAST_DIAGNOSTIC_INTERVAL,
+    MAX_MEDIUM_DIAGNOSTIC_INTERVAL,
     MAX_SCAN_INTERVAL,
+    MIN_FAST_DIAGNOSTIC_INTERVAL,
+    MIN_MEDIUM_DIAGNOSTIC_INTERVAL,
     MIN_SCAN_INTERVAL,
 )
 
@@ -34,7 +42,27 @@ OPTIONS_SCHEMA = vol.Schema(
         vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
             vol.Coerce(int),
             vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
-        )
+        ),
+        vol.Required(
+            CONF_FAST_DIAGNOSTIC_INTERVAL,
+            default=DEFAULT_FAST_DIAGNOSTIC_INTERVAL,
+        ): vol.All(
+            vol.Coerce(int),
+            vol.Range(
+                min=MIN_FAST_DIAGNOSTIC_INTERVAL,
+                max=MAX_FAST_DIAGNOSTIC_INTERVAL,
+            ),
+        ),
+        vol.Required(
+            CONF_MEDIUM_DIAGNOSTIC_INTERVAL,
+            default=DEFAULT_MEDIUM_DIAGNOSTIC_INTERVAL,
+        ): vol.All(
+            vol.Coerce(int),
+            vol.Range(
+                min=MIN_MEDIUM_DIAGNOSTIC_INTERVAL,
+                max=MAX_MEDIUM_DIAGNOSTIC_INTERVAL,
+            ),
+        ),
     }
 )
 
@@ -58,6 +86,7 @@ class SMASpeedWireConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors = {}
         if user_input is not None:
+            api = None
             try:
                 api = SMA_SPEEDWIRE(
                     user_input[CONF_HOST],
@@ -76,6 +105,9 @@ class SMASpeedWireConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_PASSWORD: user_input[CONF_PASSWORD],
                     },
                 )
+            finally:
+                if api is not None:
+                    await self.hass.async_add_executor_job(api.close)
 
         return self.async_show_form(
             step_id="user",
@@ -92,6 +124,20 @@ class SMASpeedWireOptionsFlow(OptionsFlowWithReload):
     ) -> FlowResult:
         """Manage integration options."""
         if user_input is not None:
+            if (
+                user_input[CONF_FAST_DIAGNOSTIC_INTERVAL]
+                < user_input[CONF_SCAN_INTERVAL]
+                or user_input[CONF_MEDIUM_DIAGNOSTIC_INTERVAL]
+                < user_input[CONF_FAST_DIAGNOSTIC_INTERVAL]
+            ):
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=self.add_suggested_values_to_schema(
+                        OPTIONS_SCHEMA,
+                        user_input,
+                    ),
+                    errors={"base": "invalid_diagnostic_intervals"},
+                )
             return self.async_create_entry(data=user_input)
 
         return self.async_show_form(

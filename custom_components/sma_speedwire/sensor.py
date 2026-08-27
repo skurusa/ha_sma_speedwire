@@ -11,8 +11,12 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfFrequency,
     UnitOfPower,
+    UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
@@ -55,14 +59,39 @@ class SMASensor(CoordinatorEntity, SensorEntity):
         self._attr_name = coordinator.data.sensors[sensor]['name']
         # self._attr_icon = "mdi:flash"
 
-        if coordinator.data.sensors[sensor]['unit'] == 'kWh':
+        unit = coordinator.data.sensors[sensor]["unit"]
+        if unit == "kWh":
             self._attr_state_class = SensorStateClass.TOTAL_INCREASING
             self._attr_device_class = SensorDeviceClass.ENERGY
             self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
-        elif coordinator.data.sensors[sensor]['unit'] == 'W':
+        elif unit == "W":
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_device_class = SensorDeviceClass.POWER
             self._attr_native_unit_of_measurement = UnitOfPower.WATT
+        elif unit == "V":
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_device_class = SensorDeviceClass.VOLTAGE
+            self._attr_native_unit_of_measurement = UnitOfElectricPotential.VOLT
+            self._attr_suggested_display_precision = 1
+        elif unit == "A":
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_device_class = SensorDeviceClass.CURRENT
+            self._attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
+            self._attr_suggested_display_precision = 2
+        elif unit == "Hz":
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_device_class = SensorDeviceClass.FREQUENCY
+            self._attr_native_unit_of_measurement = UnitOfFrequency.HERTZ
+            self._attr_suggested_display_precision = 2
+        elif unit == "°C":
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_device_class = SensorDeviceClass.TEMPERATURE
+            self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+            self._attr_suggested_display_precision = 1
+        elif sensor == "device_status":
+            self._attr_icon = "mdi:solar-power-variant"
+        elif sensor == "grid_relay_status":
+            self._attr_icon = "mdi:electric-switch"
 
         # https://developers.home-assistant.io/docs/device_registry_index/
         self._attr_device_info = DeviceInfo(
@@ -76,11 +105,14 @@ class SMASensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self):
         """Return if entity is available."""
-        return self.coordinator.last_update_success
+        return (
+            self.coordinator.last_update_success
+            and self.coordinator.data.sensors[self._sensor]["value"] is not None
+        )
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
         value = self.coordinator.data.sensors[self._sensor]['value']
-        _LOGGER.debug("%s %f", self._sensor, value)
+        _LOGGER.debug("%s %s", self._sensor, value)
         return value

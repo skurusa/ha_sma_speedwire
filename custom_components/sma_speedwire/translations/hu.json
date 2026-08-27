@@ -15,15 +15,22 @@
   "options": {
     "step": {
       "init": {
-        "title": "Lekérdezési időköz",
-        "description": "Itt állítható be, milyen gyakran kérdezze le a rendszer az SMA invertert.",
+        "title": "Lekérdezési időközök",
+        "description": "Itt állítható be, milyen gyakran kérdezze le a rendszer az SMA invertert. A diagnosztikai időközök csökkentése több hálózati kérést generál, és szükségtelenül terhelheti az inverter kommunikációját.",
         "data": {
-          "scan_interval": "Lekérdezési időköz (másodperc)"
+          "scan_interval": "Termelési adatok időköze (másodperc)",
+          "fast_diagnostic_interval": "Fázis- és DC-diagnosztika időköze (másodperc)",
+          "medium_diagnostic_interval": "Állapot- és villamos diagnosztika időköze (másodperc)"
         },
         "data_description": {
-          "scan_interval": "Megengedett tartomány: 10–300 másodperc. Az ajánlott alapérték 30 másodperc."
+          "scan_interval": "A három eredeti termelési entitást frissíti. Tartomány: 10–300 másodperc; alapérték: 30 másodperc.",
+          "fast_diagnostic_interval": "Az AC-fázisteljesítményeket és a DC-stringek teljesítményét frissíti. Tartomány: 20–600 másodperc; alapérték: 30 másodperc. Nem lehet rövidebb a termelési időköznél.",
+          "medium_diagnostic_interval": "A feszültség-, áram-, frekvencia-, hőmérséklet- és állapotadatokat frissíti. Tartomány: 30–3600 másodperc; alapérték: 60 másodperc. Nem lehet rövidebb a fázis/DC időköznél."
         }
       }
+    },
+    "error": {
+      "invalid_diagnostic_intervals": "Az időközök sorrendje csak növekvő lehet: termelés, fázis/DC, majd állapot/villamos diagnosztika."
     }
   }
 }

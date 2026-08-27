@@ -11,5 +11,26 @@
                 }
             }
         }
+    },
+    "options": {
+        "error": {
+            "invalid_diagnostic_intervals": "Die Intervalle müssen aufsteigend sein: Produktion, Phase/DC, dann Status/elektrische Diagnose."
+        },
+        "step": {
+            "init": {
+                "title": "Abfrageintervalle",
+                "description": "Kürzere Diagnoseintervalle erzeugen mehr Netzwerkanfragen und können die Kommunikationsschnittstelle des Wechselrichters unnötig belasten.",
+                "data": {
+                    "scan_interval": "Produktionsintervall (Sekunden)",
+                    "fast_diagnostic_interval": "Phasen- und DC-Diagnoseintervall (Sekunden)",
+                    "medium_diagnostic_interval": "Status- und elektrisches Diagnoseintervall (Sekunden)"
+                },
+                "data_description": {
+                    "scan_interval": "Bereich: 10–300 Sekunden; Standard: 30 Sekunden.",
+                    "fast_diagnostic_interval": "Bereich: 20–600 Sekunden; Standard: 30 Sekunden. Darf nicht kürzer als das Produktionsintervall sein.",
+                    "medium_diagnostic_interval": "Bereich: 30–3600 Sekunden; Standard: 60 Sekunden. Darf nicht kürzer als das Phasen-/DC-Intervall sein."
+                }
+            }
+        }
     }
 }
