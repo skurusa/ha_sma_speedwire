@@ -1,5 +1,6 @@
 """The sensor entity for the iec6205621 integration."""
 from __future__ import annotations
+
 import logging
 
 from homeassistant.components.sensor import (
@@ -25,6 +26,7 @@ from . import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -41,8 +43,9 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class SMASensor(CoordinatorEntity, SensorEntity): 
+class SMASensor(CoordinatorEntity, SensorEntity):
     """Class for a sensor."""
+
     def __init__(self, coordinator, device, sensor):
         """Initialize an sensor."""
         super().__init__(coordinator)
@@ -51,6 +54,7 @@ class SMASensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_{device}_{sensor}"
         self._attr_name = coordinator.data.sensors[sensor]['name']
         # self._attr_icon = "mdi:flash"
+
         if coordinator.data.sensors[sensor]['unit'] == 'kWh':
             self._attr_state_class = SensorStateClass.TOTAL_INCREASING
             self._attr_device_class = SensorDeviceClass.ENERGY
@@ -59,14 +63,14 @@ class SMASensor(CoordinatorEntity, SensorEntity):
             self._attr_state_class = SensorStateClass.MEASUREMENT
             self._attr_device_class = SensorDeviceClass.POWER
             self._attr_native_unit_of_measurement = UnitOfPower.WATT
-    
+
         # https://developers.home-assistant.io/docs/device_registry_index/
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{device}")},
             manufacturer="SMA",
             model=coordinator.data.inv_type,
             name=coordinator.data.inv_type,
-            hw_version=coordinator.data.serial,
+            hw_version=str(coordinator.data.serial),
         )
 
     @property
@@ -79,5 +83,4 @@ class SMASensor(CoordinatorEntity, SensorEntity):
         """Return the state of the sensor."""
         value = self.coordinator.data.sensors[self._sensor]['value']
         _LOGGER.debug("%s %f", self._sensor, value)
-
         return value
