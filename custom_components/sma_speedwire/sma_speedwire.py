@@ -289,8 +289,8 @@ class SMA_SPEEDWIRE:
 
     def _fetch(self, command):
         data = self._send_recieve(command)
-        data_len = len(data)
         if data:
+            data_len = len(data)
             cmd = unpack_from("H", data, offset=55)[0]
             self.logger.debug("Data identifier %02X" % cmd)
             if cmd == 0x821E:
