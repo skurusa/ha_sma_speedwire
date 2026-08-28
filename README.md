@@ -25,6 +25,18 @@ Diagnostic commands are staggered across normal production updates, so a refresh
 
 `0.2.0-beta.2` remains a hardware-validation release. It is intended to verify the extended registers on real inverters before the stable `0.2.0` release.
 
+## Beta validation: daytime and inverter sleep
+
+During daytime operation, the extended AC, DC, grid, temperature and status entities are populated alongside the three established production sensors. The DC input power and the summed AC phase power can differ slightly because of inverter conversion losses and internal consumption.
+
+<img src="img/sma-speedwire-daytime-diagnostics.svg" alt="SMA SpeedWire extended diagnostics during daytime operation" width="900">
+
+The complete daytime entity list includes per-phase AC current, power and voltage; per-string DC current, power and voltage; device and grid-relay status; grid frequency; inverter temperature; and the established production sensors.
+
+<img src="img/sma-speedwire-daytime-sensors.svg" alt="Complete SMA SpeedWire daytime sensor list in Home Assistant" width="420">
+
+When the inverter enters its nighttime or sleep state, instantaneous AC/DC diagnostic entities may become `unavailable`. This is expected: the inverter is not publishing live conversion data. The daily and lifetime production counters are preserved. Since `0.2.0-beta.2`, recognized registers containing SMA no-value sentinels are not treated as unsupported commands, do not enter the 15-minute retry backoff, and automatically populate again after the inverter wakes.
+
 ![add integration to HACS](img/integration.png)
 The integration supports a range of SMA inverters. See the [supported inverter list](https://github.com/skurusa/ha_sma_speedwire/blob/main/custom_components/sma_speedwire/sma_speedwire.py#L27).
 
