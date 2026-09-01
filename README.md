@@ -13,7 +13,7 @@ The three original entities remain unchanged for backward compatibility:
 - Power production now in W
 
 
-Starting with `0.2.0-beta.1`, the integration can also expose:
+Starting with `0.2.0`, the integration can also expose:
 
 
 - AC power, voltage and current for phases L1, L2 and L3
@@ -29,10 +29,7 @@ Extended entities are available only when the inverter model returns the corresp
 Diagnostic commands are staggered across normal production updates, so a refresh does not send the entire diagnostic query set at once. A repeatedly unsupported optional command is temporarily backed off and retried later; this avoids continuously delaying the established production sensors on inverter models that do not provide every register.
 
 
-`0.2.0-beta.2` fixes nighttime and sleep-state handling. A supported register that contains SMA's no-value sentinel remains unavailable without being misclassified as an unsupported command, so it does not enter the 15-minute retry backoff. SMA status tag `16777213` is displayed as `Information not available`.
-
-
-`0.2.0-beta.2` remains a hardware-validation release. It is intended to verify the extended registers on real inverters before the stable `0.2.0` release.
+Version `0.2.0` includes the nighttime and sleep-state handling validated in `0.2.0-beta.2`. A supported register that contains SMA's no-value sentinel remains unavailable without being misclassified as an unsupported command, so it does not enter the 15-minute retry backoff. SMA status tag `16777213` is displayed as `Information not available`.
 
 
 ## Version history
@@ -72,7 +69,14 @@ Diagnostic commands are staggered across normal production updates, so a refresh
 - Maps SMA status tag `16777213` to `Information not available`.
 - Automatically restores live diagnostic values when the inverter wakes, while preserving the production counters.
 
-## Beta validation: daytime and inverter sleep
+### [v0.2.0 — Stable extended diagnostics](https://github.com/skurusa/ha_sma_speedwire/releases/tag/v0.2.0)
+
+- Promotes the validated `v0.2.0-beta.2` implementation to the stable release channel without functional changes.
+- Includes extended AC, DC, grid, temperature and status diagnostics with configurable tiered polling.
+- Includes missing-response protection, unsupported-register backoff and correct nighttime sleep-state handling.
+- Keeps the three original production entities and their unique IDs unchanged.
+
+## Validation: daytime and inverter sleep
 
 
 During daytime operation, the extended AC, DC, grid, temperature and status entities are populated alongside the three established production sensors. The DC input power and the summed AC phase power can differ slightly because of inverter conversion losses and internal consumption.
@@ -87,4 +91,4 @@ The complete daytime entity list includes per-phase AC current, power and voltag
 <img src="img/sma-speedwire-daytime-sensors.svg" alt="Complete SMA SpeedWire daytime sensor list in Home Assistant" width="420">
 
 
-When the inverter enters its nighttime or sleep state, instantaneous AC/DC diagnostic entities may become `unavailable`. This is expected: the inverter is not publishing live conversion data. The daily and lifetime production counters are preserved. Since `0.2.0-beta.2`, recognized registers containing SMA no-value sentinels are not treated as unsupported commands, do not enter the 15-minute retry backoff, and automatically populate again after the inverter wakes.
+When the inverter enters its nighttime or sleep state, instantaneous AC/DC diagnostic entities may become `unavailable`. This is expected: the inverter is not publishing live conversion data. The daily and lifetime production counters are preserved. Since `0.2.0`, recognized registers containing SMA no-value sentinels are not treated as unsupported commands, do not enter the 15-minute retry backoff, and automatically populate again after the inverter wakes.
