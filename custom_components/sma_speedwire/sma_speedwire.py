@@ -40,6 +40,17 @@ MEDIUM_DIAGNOSTIC_INTERVAL = 60
 DIAGNOSTIC_FAILURE_LIMIT = 3
 DIAGNOSTIC_RETRY_DELAY = 15 * 60
 
+# Maximum number of diagnostic commands sent per update cycle for each tier.
+# When more commands are due than this limit, the one that has waited longest
+# goes first, so every command in a tier is eventually polled.
+FAST_DIAGNOSTIC_MAX_PER_CYCLE = 1
+MEDIUM_DIAGNOSTIC_MAX_PER_CYCLE = 2
+
+# A command counts as due slightly before its exact due time.  The update cycle
+# is rarely exactly as long as the polling interval (a few milliseconds of
+# drift is enough to skip a command for a whole cycle).
+DIAGNOSTIC_DUE_TOLERANCE = 2.0
+
 INVALID_U32_VALUES = {0xFFFFFFFF, 0x80000000, 0xFFFFFFEC, 0x00FFFFFE}
 
 SMA_STATUS_TAGS = {
@@ -81,6 +92,11 @@ REGISTER_SENSORS = {
     0x40465301: ("current_ac_l1", "uint", 1000),
     0x40465401: ("current_ac_l2", "uint", 1000),
     0x40465501: ("current_ac_l3", "uint", 1000),
+    # Older inverters (e.g. Sunny Boy TL-21) report the AC phase currents in
+    # registers 0x4650-0x4652 instead of 0x4653-0x4655.
+    0x00465001: ("current_ac_l1", "uint", 1000),
+    0x00465101: ("current_ac_l2", "uint", 1000),
+    0x00465201: ("current_ac_l3", "uint", 1000),
     0x40451F01: ("voltage_dc_1", "uint", 100),
     0x40451F02: ("voltage_dc_2", "uint", 100),
     0x40452101: ("current_dc_1", "uint", 1000),
@@ -156,6 +172,9 @@ SMA_INV_TYPE = {
     9068: "STP 12000TL-10",
     9069: "STP 15000TL-10",
     9070: "STP 17000TL-10",
+    9074: "SB 3000TL-21",
+    9075: "SB 4000TL-21",
+    9076: "SB 5000TL-21",
     9084: "WB 3600TL-20",
     9085: "WB 5000TL-20",
     9086: "SB 3800US-10",
@@ -586,17 +605,27 @@ class SMA_SPEEDWIRE:
         self._diagnostic_retry_after[command] = 0.0
         return True
 
-    def _poll_next_diagnostic(self, commands, interval, now):
-        """Poll at most one due command from a diagnostic tier."""
-        for command in commands:
-            if now < self._diagnostic_next_due[command]:
-                continue
+    def _poll_next_diagnostic(self, commands, interval, now, max_commands=1):
+        """Poll up to max_commands due commands from a diagnostic tier.
+
+        The command that has been waiting the longest goes first.  Scanning the
+        tier in list order instead would starve the commands at the end of the
+        list whenever the polling interval is not much longer than
+        len(commands) update cycles: the first commands of the list would be
+        due again before the last ones ever got their turn.
+        """
+        due = [
+            command
+            for command in commands
+            if now + DIAGNOSTIC_DUE_TOLERANCE >= self._diagnostic_next_due[command]
+        ]
+        due.sort(key=lambda command: self._diagnostic_next_due[command])
+        for command in due[:max_commands]:
             self._fetch_diagnostics(command, now)
             self._diagnostic_next_due[command] = max(
                 now + interval,
                 self._diagnostic_retry_after[command],
             )
-            return
 
     def _fetch(self, command):
         data = self._send_recieve(command)
@@ -655,11 +684,13 @@ class SMA_SPEEDWIRE:
                 FAST_DIAGNOSTIC_COMMANDS,
                 self.fast_diagnostic_interval,
                 now,
+                FAST_DIAGNOSTIC_MAX_PER_CYCLE,
             )
             self._poll_next_diagnostic(
                 MEDIUM_DIAGNOSTIC_COMMANDS,
                 self.medium_diagnostic_interval,
                 now,
+                MEDIUM_DIAGNOSTIC_MAX_PER_CYCLE,
             )
         finally:
             self._logout()
